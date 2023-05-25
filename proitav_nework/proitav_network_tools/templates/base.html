@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ProITAV Network Tools</title>
+</head>
+
+<body>
+    <header>
+        <h1>ProITAV Network Tools</h1>
+        <nav>
+            <ul>
+                <li><a href="{% url 'netscan:index' %}">NetScan</a></li>
+                <li><a href="{% url 'portscan:index' %}">PortScan</a></li>
+                <li><a href="{% url 'speedtest:index' %}">SpeedTest</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>
