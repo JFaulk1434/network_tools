@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ProITAV Network Tools</title>
+
+    <style>
+        /* Add some CSS for the tables */
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        table th,
+        table td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        /* Add some CSS for the header */
+        header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+        }
+
+        /* Add some CSS for the navigation */
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        nav ul li {
+            display: inline;
+            margin-right: 10px;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+    {% load static %}
+</head>
+
+<body>
+    <header>
+        <img src="{% static 'images/ProITAV-Vert-Small.png' %}" alt="Your Logo" width="100">
+        <h1>ProITAV Network Tools</h1>
+        <nav>
+            <ul>
+                <li><a href="{% url 'netscan:index' %}">Network Scan</a></li>
+                <li><a href="{% url 'portscan:index' %}">Port Scan</a></li>
+                <li><a href="{% url 'bandwidth:index' %}">Speed Test</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>
