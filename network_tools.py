@@ -343,33 +343,25 @@ class Network_tools:
 
 
 if __name__ == "__main__":
-    net = Network_tools(
-        verbose=True
-    )  # Set verbose=True to print when running methods. False to only return the values.
-    # devices = net.net_scan(verbose=True)
-    # print(net.tcp_port_scan("192.168.50.200", 0, 5000))
-    # print(net.syn_port_scan("192.168.50.200", 0, 5000))
-    # print(net.trace_route("8.8.8.8", verbose=False))
-    # net.speed_test(verbose=True)
-    # net.get_network_info()
+    net = Network_tools(verbose=True)
 
     # Get Network Information
-    net.get_network_info()
+    # net.get_network_info()
 
     # Get local IP and scan network
-    ip, subnet = net.get_local_ip_and_subnet()
-    online_devices = net.net_scan(ip, subnet)
+    # ip, subnet = net.get_local_ip_and_subnet()
+    # online_devices = net.net_scan(ip, subnet)
 
     # Scan ports on 5th device from net_scan
-    open_ports = net.tcp_port_scan(online_devices[4]["ip"], 1, 100)
+    # open_ports = net.tcp_port_scan(online_devices[4]["ip"], 1, 100)
 
     # Check for banners on each port
-    for port in open_ports:
-        banner = net.grab_banner(online_devices[4]["ip"], port)
-        print(f"Banner: {banner} Port: {port}")
+    # for port in open_ports:
+    #    banner = net.grab_banner(online_devices[4]["ip"], port)
+    #    print(f"Banner: {banner} Port: {port}")
 
     # Trace route
-    net.trace_route("8.8.8.8")
+    # net.trace_route("8.8.8.8")
 
     # Speed Test
     net.speed_test()
