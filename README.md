@@ -29,6 +29,13 @@ Install all required packages using pip:
 pip install scapy manuf psutil speedtest-cli netifaces rich
 ```
 
+Package:
+
+```bash
+python3 setup.py sdist bdist_wheel
+pip3 install ./dist/nettools-0.1-py3-none-any.whl
+```
+
 ## Usage
 
 ### Initialization

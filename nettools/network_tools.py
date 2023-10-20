@@ -1,3 +1,10 @@
+import logging
+
+
+# Suppresses Scapy no address on IPv4 on MacOS for interfaces not being used.
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+
+
 from scapy.all import ARP, Ether, srp, IP, TCP, sr1, ICMP
 import manuf
 import psutil
@@ -6,6 +13,7 @@ import speedtest
 import time
 import netifaces
 from rich.pretty import pprint
+
 
 m = manuf.MacParser()
 
@@ -23,7 +31,7 @@ class Network_tools:
             if True will print out information during each function that is ran."""
         self.verbose = verbose
 
-    def net_scan(self, ip=None, subnet=24, verbose=None):
+    def net_scan(self, ip=None, subnet=24, verbose=None) -> list:
         """Scans the network and returns a list of devices that responded
         as a list of dictionaries
 
@@ -34,18 +42,24 @@ class Network_tools:
         verbose: default=False
             if True will print results instead of returning
         """
-        print("Scanning Network...")
+        print("Scanning Network...\n")
         if verbose is None:
             verbose = self.verbose
         ip_range = f"{ip}/{subnet}"
 
         if ip == None:
             try:
-                network = Network_tools.get_local_ip_and_subnet()
-                ip_range = f"{network[0]}/{network[1]}"
                 print("No IP entered... Attemping Auto...")
+                network = self.get_local_ip_and_subnet()
+                print(f"Network detected: {network[0]}/{network[1]}\n")
+
+                ip_range = f"{network[0]}/{network[1]}"
+
             except:
                 print("Unable to detect network")
+                ip_range = input(
+                    "Please enter network with subnet example: 192.168.1.1/24"
+                )
 
         arp = ARP(pdst=ip_range)
         ether = Ether(dst="ff:ff:ff:ff:ff:ff")
@@ -56,8 +70,9 @@ class Network_tools:
         if verbose:
             for _, rcv in answered:
                 print(
-                    f"IP: {rcv.psrc} \tMAC: {rcv.hwsrc} \t\tManufacture: {m.get_manuf_long(rcv.hwsrc)}"
+                    f"IP: {rcv.psrc:<15} MAC: {rcv.hwsrc:<20} Manufacture: {m.get_manuf_long(rcv.hwsrc)}"
                 )
+            print("\n\n")
 
         for _, rcv in answered:
             device = {
@@ -97,8 +112,20 @@ class Network_tools:
             print("Unable to get local IP address and subnet mask.")
             return None, None
 
-    def tcp_port_scan(self, target_ip, start, end, verbose=None):
-        print(f"Checking {target_ip} for open ports between {start}-{end}...")
+    def tcp_port_scan(self, target_ip, start=1, end=500, verbose=None) -> list:
+        """Scans TCP ports on target ip using standard TCP Discovery.
+
+
+        Args:
+        ip: IP address you want to scan
+        start: default=1
+            Starting port
+        end: default=2
+            Ending port
+        verbose: default=True
+            if True will print out the results
+        """
+        print(f"Checking {target_ip} for open ports between {start}-{end}...\n")
         if verbose is None:
             verbose = self.verbose
 
@@ -116,11 +143,11 @@ class Network_tools:
         end_time = time.time()
         if verbose:
             print(f"Scanning complete. Took {end_time - start_time:.2f} seconds.")
-            print(f"{target_ip} has the following TCP ports open: {open_ports}")
+            print(f"{target_ip} has the following TCP ports open: {open_ports}\n\n")
 
         return open_ports
 
-    def syn_port_scan(self, target_ip, start, end, verbose=None):
+    def syn_port_scan(self, target_ip, start, end, verbose=None) -> list:
         """Use Scapy to do a Half-Open Scan SYN SCAN is less detectable but takes longer.
         Returns a list of open TCP Ports
 
@@ -159,27 +186,40 @@ class Network_tools:
             print(f"{target_ip} has the following TCP ports open: {open_ports}")
         return open_ports
 
-    def grab_banner(self, target_ip, port, verbose=None):
+    def grab_banner(self, target_ip, ports, verbose=None) -> dict:
         """Grab the Banner of a port on an IP address.
-        Returns banner or None from IP/Port.
+        Returns a dictionary of port-banner pairs from IP/Port(s).
 
         Args:
         target_ip: Target IP address
-        port: port to grab banner from
+        ports: port or list of ports to grab banner from
         """
         if verbose is None:
             verbose = self.verbose
 
-        try:
-            s = socket.socket()
-            s.settimeout(1)
-            s.connect((target_ip, port))
-            banner = s.recv(1024)
-            return banner.decode().strip()
-        except:
-            return None
+        banners = {}
 
-    def trace_route(self, target_ip, max_hops=30, timeout=2, verbose=None):
+        if not isinstance(ports, list):
+            ports = [ports]
+
+        for port in ports:
+            try:
+                s = socket.socket()
+                s.settimeout(1)
+                s.connect((target_ip, port))
+                banner = s.recv(1024)
+                banners[port] = banner.decode().strip()
+            except:
+                banners[port] = None
+
+        if verbose:
+            print("Banners:\n")
+            pprint(banners)
+            print("\n\n")
+
+        return banners
+
+    def trace_route(self, target_ip, max_hops=15, timeout=2, verbose=None) -> dict:
         """Runs a trace route to the target IP address
         Returns a dictionary of the hops and the time taken for each
 
@@ -194,6 +234,7 @@ class Network_tools:
         """
         if verbose is None:
             verbose = self.verbose
+
         hop_dict = {}
         total_time = 0
 
@@ -201,31 +242,19 @@ class Network_tools:
             print(f"Tracing route to {target_ip} with a maximum of {max_hops} hops.\n")
 
         for ttl in range(1, max_hops + 1):
-            # Craft an IP packet with the target IP address and TTL value
             ip_packet = IP(dst=target_ip, ttl=ttl)
-
-            # Craft an ICMP packet
             icmp_packet = ICMP()
-
-            # Combine the IP and ICMP packets
             packet = ip_packet / icmp_packet
 
-            # Record start time
             start_time = time.time()
-
-            # Send the packet and receive the reply
             reply = sr1(packet, timeout=timeout, verbose=False)
-
-            # Record end time
             end_time = time.time()
 
-            # Calculate the time difference
             elapsed_time = round(end_time - start_time, 2)
             total_time += elapsed_time
 
-            if reply is None:
-                hop_info = "*"
-            elif reply.haslayer(ICMP):
+            hop_info = "*"
+            if reply is not None and reply.haslayer(ICMP):
                 if reply[ICMP].type == 11 and reply[ICMP].code == 0:
                     hop_info = reply.src
                 elif reply[ICMP].type == 0:
@@ -240,10 +269,14 @@ class Network_tools:
             if verbose:
                 print(f"{ttl}:\t{hop_info} in {elapsed_time}s")
 
+        if verbose:
+            print(f"Total Time: {round(total_time, 2)}s\n")
+
         hop_dict["total_time"] = round(total_time, 2)
+
         return hop_dict
 
-    def speed_test(self, verbose=None):
+    def speed_test(self, verbose=None) -> dict:
         """Runs an Internet speedtest and returns a dictionary of the results
 
         Args:
@@ -270,12 +303,10 @@ class Network_tools:
         server_name = s.results.server.get("name", "Unknown")
         server_host = s.results.server.get("host", "Unknown")
         server_country = s.results.server.get("country", "Unknown")
-        server_id = s.results.server.get("id", "Unknown")
 
         # Get the client information
         client_ip = s.results.client.get("ip", "Unknown")
         client_isp = s.results.client.get("isp", "Unknown")
-        client_isp_rating = s.results.client.get("isprating", "Unknown")
         client_country = s.results.client.get("country", "Unknown")
 
         results = {
@@ -285,10 +316,8 @@ class Network_tools:
             "server_name": server_name,
             "server_host": server_host,
             "server_country": server_country,
-            "server_id": server_id,
             "client_ip": client_ip,
             "client_isp": client_isp,
-            "client_isp_rating": client_isp_rating,
             "client_country": client_country,
         }
 
@@ -296,7 +325,7 @@ class Network_tools:
             pprint(results)
         return results
 
-    def get_network_info(self, verbose=None):
+    def get_network_info(self, verbose=None) -> dict:
         """Gets your computers networking interfaces information.
         Returns a dictionary of all of the interfaces
 
@@ -304,6 +333,7 @@ class Network_tools:
         verbose: default=True
             if verbose=True will print out the interfaces
         """
+        print("Checking Network Interfaces...\n")
         if verbose is None:
             verbose = self.verbose
 
@@ -341,27 +371,47 @@ class Network_tools:
 
         return network_info
 
+    @staticmethod
+    def demo():
+        print("This is a demo of network tools")
+        print("You can create the class with net = Network_tools(verbose=True)")
+        print(
+            "with verbose=True will printout all information, verbose=False will only print minimal"
+        )
+        print("Creating object using: net = Network_tools(verbose=True)")
+        net = Network_tools(verbose=True)
+
+        print("Running net.get_network_info()")
+        net.get_network_info()
+
+        print("Getting IP / Subnet with: ip, subnet = net.get_local_ip_and_subnet()")
+        ip, subnet = net.get_local_ip_and_subnet()
+
+        print(
+            "Getting devices online in network with: online_devices = net.net_scan(ip, subnet)"
+        )
+        online_devices = net.net_scan(ip, subnet)
+
+        print(
+            "Checking 2nd device for open ports: open_ports = net.tcp_port_scan(online_devices[1], open_ports)"
+        )
+        open_ports = net.tcp_port_scan(online_devices[1]["ip"], 1, 100)
+
+        print(
+            'Checking for banners on each port: net.grab_banner(online_devices[1]["ip"], open_ports)'
+        )
+        net.grab_banner(online_devices[1]["ip"], open_ports)
+
+        print('Run a traceroute: net.trace_route("8.8.8.8")')
+        net.trace_route("8.8.8.8")
+
+        print("Run a bandwidth speed test: net.speed_test()")
+        net.speed_test()
+
+        print("Demo Complete...")
+
 
 if __name__ == "__main__":
     net = Network_tools(verbose=True)
 
-    # Get Network Information
-    # net.get_network_info()
-
-    # Get local IP and scan network
-    # ip, subnet = net.get_local_ip_and_subnet()
-    # online_devices = net.net_scan(ip, subnet)
-
-    # Scan ports on 5th device from net_scan
-    # open_ports = net.tcp_port_scan(online_devices[4]["ip"], 1, 100)
-
-    # Check for banners on each port
-    # for port in open_ports:
-    #    banner = net.grab_banner(online_devices[4]["ip"], port)
-    #    print(f"Banner: {banner} Port: {port}")
-
-    # Trace route
-    # net.trace_route("8.8.8.8")
-
-    # Speed Test
-    net.speed_test()
+    net.net_scan()

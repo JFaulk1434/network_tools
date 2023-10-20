@@ -1,0 +1,7 @@
+click
+scapy
+manuf
+psutil
+speedtest
+rich
+netifaces

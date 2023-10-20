@@ -1,0 +1,2 @@
+[console_scripts]
+nettools = nettools.net_cli:cli
