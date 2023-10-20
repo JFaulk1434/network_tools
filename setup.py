@@ -14,7 +14,7 @@ setup(
         "scapy",
         "manuf",
         "psutil",
-        "speedtest",
+        "speedtest-cli",
         "rich",
         "netifaces",
     ],

@@ -11,11 +11,12 @@ def cli():
 
 @cli.command()
 @click.option(
-    "--ip", default=None, help="IP address, left blank will try to auto detect"
+    "--ip", "-i", default=None, help="IP address, left blank will try to auto detect"
 )
-@click.option("--subnet", default="24", help="Subnet to scan")
+@click.option("--subnet", "-s", default="24", help="Subnet to scan")
 @click.option(
     "--verbose",
+    "-v",
     default=True,
     is_flag=True,
     help="Verbose Mode, True will print out more information",
@@ -35,9 +36,9 @@ def net_scan(ip, subnet, verbose):
 
 
 @cli.command()
-@click.option("--ip", default=None, help="IPv4 address of device to scan")
-@click.option("--start", default=1, help="Starting port number")
-@click.option("--end", default=500, help="Ending port number")
+@click.argument("ip")
+@click.option("--start", "-s", default=1, help="Starting port number")
+@click.option("--end", "-e", default=500, help="Ending port number")
 @click.option(
     "--verbose",
     default=True,
@@ -63,7 +64,7 @@ def port_scan(ip, start, end, verbose=True):
 @cli.command()
 @click.option("--ip", default=None, help="IPv4 address of device to scan")
 @click.option("--hops", default=15, help="Max amount of hops to try")
-@click.option("--time", default=2, help="Amount of time before timeout on each hop")
+@click.option("--timeout", default=2, help="Amount of time before timeout on each hop")
 @click.option(
     "--verbose",
     default=True,
@@ -100,7 +101,10 @@ def speed_test(verbose=True):
     verbose: default=False
         if verbose=True will print results
     """
-    net.speed_test(verbose)
+    try:
+        net.speed_test(verbose)
+    except:
+        print("Servers are busy try again in a few mins...")
 
 
 @cli.command()
