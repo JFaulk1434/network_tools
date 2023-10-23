@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="nettools",
-    version="0.1",
+    version="0.3",
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "nettools=nettools.net_cli:cli",
+            "NT=nettools.net_cli:cli",
         ],
     },
     install_requires=[
@@ -16,6 +16,5 @@ setup(
         "psutil",
         "speedtest-cli",
         "rich",
-        "netifaces",
     ],
 )

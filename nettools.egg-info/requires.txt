@@ -4,4 +4,3 @@ manuf
 psutil
 speedtest-cli
 rich
-netifaces

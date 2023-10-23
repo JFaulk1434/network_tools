@@ -11,7 +11,9 @@ import psutil
 import socket
 import speedtest
 import time
-import netifaces
+import platform
+import subprocess
+
 from rich.pretty import pprint
 
 
@@ -325,6 +327,41 @@ class Network_tools:
             pprint(results)
         return results
 
+    def get_default_gateway(self):
+        try:
+            system = platform.system().lower()
+            default_gateway = None
+
+            if system == "linux":
+                proc = subprocess.Popen(
+                    ["ip", "route", "show", "default"], stdout=subprocess.PIPE
+                )
+                stdout, _ = proc.communicate()
+                default_route_line = stdout.decode("utf-8").strip().split("\n")[0]
+                default_gateway = default_route_line.split(" ")[2]
+
+            elif system == "windows":
+                proc = subprocess.Popen(["ipconfig"], stdout=subprocess.PIPE)
+                stdout, _ = proc.communicate()
+                lines = stdout.decode("utf-8").strip().split("\n")
+                for line in lines:
+                    if "Default Gateway" in line:
+                        default_gateway = line.split(":")[1].strip()
+
+            elif system == "darwin":  # macOS
+                proc = subprocess.Popen(["netstat", "-nr"], stdout=subprocess.PIPE)
+                stdout, _ = proc.communicate()
+                lines = stdout.decode("utf-8").strip().split("\n")
+                for line in lines:
+                    if "default" in line:
+                        default_gateway = line.split()[1]
+
+            return default_gateway
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
+
     def get_network_info(self, verbose=None) -> dict:
         """Gets your computers networking interfaces information.
         Returns a dictionary of all of the interfaces
@@ -362,12 +399,9 @@ class Network_tools:
         """
                     print(message)
 
-        gws = netifaces.gateways()
-        default_gateway = gws.get("default")
+        default_gateway = self.get_default_gateway()
         if default_gateway:
-            ipv4_gw = default_gateway.get(netifaces.AF_INET)
-            if ipv4_gw:
-                network_info["Gateway"] = ipv4_gw[0]
+            network_info["Gateway"] = default_gateway
 
         return network_info
 
@@ -414,4 +448,4 @@ class Network_tools:
 if __name__ == "__main__":
     net = Network_tools(verbose=True)
 
-    net.net_scan()
+    net.get_network_info()

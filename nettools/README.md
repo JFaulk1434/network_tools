@@ -1,101 +1,106 @@
-# nettools: A CLI Tool for Network Operations
+# NetTools CLI
+
+NetTools is a command-line interface that provides a collection of network utilities. With this tool, you can scan networks, perform port scans, trace routes, and more.
 
 ## Installation
 
-To install `nettools`, simply run:
+If you have received a wheel file for this package, you can install it using pip:
 
 ```bash
-pip install /path/to/nettools-0.1-py3-none-any.whl
+pip install /path/to/nettools-0.3-py3-none-any.whl
 ```
 
-## Usage
+## Commands
 
 ### Base Command
 
-The base command is `nettools`. It contains various sub-commands for different networking tasks.
+The base command is `NT`. It contains various sub-commands for different networking tasks.
 
 ```bash
-nettools --help
+NT --help
 ```
 
-### net_scan
+### net-scan
 
-Scans the local network and lists devices.
+Scans the network and shows all devices found.
+
+Usage:
 
 ```bash
-nettools net_scan --ip [your_ip] --subnet [subnet] --verbose
+NT net-scan [--ip, -i IP_ADDRESS] [--subnet, -s SUBNET] [--verbose, -v]
 ```
 
-- `--ip`: IP address to start scanning from. If left blank, it tries to auto-detect.
-- `--subnet`: Subnet to scan. Default is 24.
-- `--verbose`: Verbose mode. Provides additional information.
+`NT net-scan` will attempt to autodetect your network connection and scan that network.
+`NT net-scan 192.168.0.1 24` would scan the 192.168.0.x network with a 255.255.255.0 subnet
 
-### port_scan
+### port-scan
 
-Performs a TCP port scan on a given IP.
+Scans TCP ports on a target IP using standard TCP Discovery.
+
+Usage:
 
 ```bash
-nettools port_scan --ip [target_ip] --start [starting_port] --end [ending_port] --verbose
+NT port-scan IP START END [--verbose, -v]
 ```
 
-- `--ip`: Target IP address to scan.
-- `--start`: Starting port number. Default is 1.
-- `--end`: Ending port number. Default is 500.
-- `--verbose`: Verbose mode. Provides additional information.
+`NT port-scan 192.168.0.1` will scan ports 1-100 by default
+`NT port-scan 192.168.0.1 1000 1300` would scan ports 1000 to 1300
 
-### trace_route
+### trace-route
 
-Traces the route to a target IP address.
+Runs a trace route to the target IP address.
+
+Usage:
 
 ```bash
-nettools trace_route --ip [target_ip] --hops [max_hops] --time [timeout] --verbose
+NT trace-route IP [--hops, -h HOPS] [--timeout, -t TIMEOUT] [--verbose, -v]
 ```
 
-- `--ip`: Target IP address.
-- `--hops`: Maximum hops to try. Default is 15.
-- `--time`: Time before each hop times out. Default is 2 seconds.
-- `--verbose`: Verbose mode. Provides additional information.
+### speed-test
 
-### speed_test
+Runs an Internet speed test.
 
-Runs an internet speed test.
+Usage:
 
 ```bash
-nettools speed_test --verbose
+NT speed-test [--verbose, -v]
 ```
 
-- `--verbose`: Verbose mode. Provides additional information.
+### network-info
 
-### network_info
+Gets your computer's networking interfaces information.
 
-Retrieves network interface information.
+Usage:
 
 ```bash
-nettools network_info --verbose
+NT network-info [--verbose, -v]
 ```
-
-- `--verbose`: Verbose mode. Provides additional information.
 
 ### demo
 
 Runs a demo of all the network tools.
 
-```bash
-nettools demo
-```
+Usage:
 
----
+```bash
+NT demo
+```
 
 ## Examples
 
-To run a network scan:
-
 ```bash
-nettools net_scan
-```
+# Scan the network
+NT net-scan
 
-To perform a port scan between ports 1 and 100 on IP `192.168.1.1`:
+# Perform a port scan from port 1 to 100 on 192.168.1.1
+NT port-scan 192.168.1.1 1 100
 
-```bash
-nettools port_scan --ip 192.168.1.1 --start 1 --end 100
+# Trace the route to 8.8.8.8
+NT trace-route 8.8.8.8
+
+# Run a speed test
+NT speed-test
+
+# Get network info
+NT network-info
 ```

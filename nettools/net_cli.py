@@ -28,8 +28,8 @@ def net_scan(ip, subnet, verbose):
 
 @cli.command()
 @click.argument("ip")
-@click.option("--start", "-s", default=1, help="Starting port number")
-@click.option("--end", "-e", default=500, help="Ending port number")
+@click.argument("start", default=1)
+@click.argument("end", default=100)
 @click.option(
     "--verbose",
     default=True,

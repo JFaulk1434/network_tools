@@ -33,7 +33,7 @@ Package:
 
 ```bash
 python3 setup.py sdist bdist_wheel
-pip3 install ./dist/nettools-0.1-py3-none-any.whl
+pip3 install ./dist/nettools-0.3-py3-none-any.whl
 ```
 
 ## Usage
