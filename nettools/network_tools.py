@@ -389,12 +389,15 @@ class Network_tools:
             if "IPv4" in if_info:
                 network_info[interface] = if_info
 
+            if "IPv6" in if_info:
+                ipv6 = if_info.get("IPv6").split("%")[0]
+
                 if verbose:
                     message = f"""
         Interface: {interface}:
             IPv4:    {if_info.get("IPv4")}
             Netmask: {if_info.get("Netmask")}
-            IPv6:    {if_info.get("IPv6").split('%')[0]}
+            IPv6:    {ipv6}
             MAC:     {if_info.get("MAC")}
         """
                     print(message)
@@ -407,39 +410,28 @@ class Network_tools:
 
     @staticmethod
     def demo():
-        print("This is a demo of network tools")
-        print("You can create the class with net = Network_tools(verbose=True)")
-        print(
-            "with verbose=True will printout all information, verbose=False will only print minimal"
-        )
-        print("Creating object using: net = Network_tools(verbose=True)")
+        print("This will demo all of the tools")
         net = Network_tools(verbose=True)
 
-        print("Running net.get_network_info()")
+        print("Running get_network_info")
         net.get_network_info()
 
-        print("Getting IP / Subnet with: ip, subnet = net.get_local_ip_and_subnet()")
+        print("Getting IP / Subnet with: get_local_ip_and_subnet")
         ip, subnet = net.get_local_ip_and_subnet()
 
-        print(
-            "Getting devices online in network with: online_devices = net.net_scan(ip, subnet)"
-        )
+        print("Getting devices online in network with: net_scan")
         online_devices = net.net_scan(ip, subnet)
 
-        print(
-            "Checking 2nd device for open ports: open_ports = net.tcp_port_scan(online_devices[1], open_ports)"
-        )
-        open_ports = net.tcp_port_scan(online_devices[1]["ip"], 1, 100)
+        print("Checking 2nd device for open ports: port_scan")
+        try:
+            net.tcp_port_scan(online_devices[1]["ip"], 1, 100)
+        except:
+            print("Invalid IP to scan")
 
-        print(
-            'Checking for banners on each port: net.grab_banner(online_devices[1]["ip"], open_ports)'
-        )
-        net.grab_banner(online_devices[1]["ip"], open_ports)
-
-        print('Run a traceroute: net.trace_route("8.8.8.8")')
+        print("Run a traceroute: trace_route 8.8.8.8")
         net.trace_route("8.8.8.8")
 
-        print("Run a bandwidth speed test: net.speed_test()")
+        print("Run a bandwidth speed test: speed_test")
         net.speed_test()
 
         print("Demo Complete...")

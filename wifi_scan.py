@@ -1,51 +1,65 @@
 import os
+import re
 
 
 def scan_wifi_channels():
     try:
-        # Run the airport command to scan for Wi-Fi networks and store the output in a file
         os.system(
             "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -s > wifi_scan.txt"
         )
 
-        # Read the output from the file
         with open("wifi_scan.txt", "r") as file:
-            output = file.read()
+            output = file.readlines()
 
-        # Check if the command was successful
-        if "error" not in output.lower():
-            lines = output.splitlines()
+        channel_info = {}
 
-            # Create a dictionary to store channel information
-            channel_info = {}
+        pattern = re.compile(r"([^\s]+)\s+(-\d+)\s+(\d+)(?:,\+1)?\s+")
 
-            for line in lines[1:]:  # Skip the header line
-                fields = line.split()
-                channel_str = fields[0]
-                ssid = " ".join(
-                    fields[4:]
-                )  # Join all fields after the fourth one as the SSID
-
-                try:
-                    channel = int(channel_str)
-                except ValueError:
-                    # Skip lines with non-numeric channel values
-                    continue
+        for line in output[1:]:
+            match = pattern.search(line)
+            if match:
+                ssid, rssi, channel_str = match.groups()
+                channel = int(channel_str)
+                rssi = int(rssi)
 
                 if channel not in channel_info:
                     channel_info[channel] = []
 
-                channel_info[channel].append(ssid)
+                channel_info[channel].append((ssid, rssi))
 
-            # Print channel information
-            for channel, networks in channel_info.items():
-                print(f"Channel {channel}:")
-                for ssid in networks:
-                    print(f"  SSID: {ssid}")
-        else:
-            print("Error: Unable to run airport command.")
+        for channel, networks in channel_info.items():
+            print(f"Channel {channel}:")
+            for ssid, rssi in networks:
+                print(f"  SSID: {ssid}, RSSI: {rssi}")
+
     except Exception as e:
         print(f"An error occurred: {e}")
+
+    channel_strength_24GHz = {}
+    channel_strength_5GHz = {}
+
+    for channel, networks in channel_info.items():
+        total_rssi = sum(rssi for _, rssi in networks)
+
+        if channel <= 14:
+            channel_strength_24GHz[channel] = total_rssi
+        else:
+            channel_strength_5GHz[channel] = total_rssi
+
+    # Sort and pick the cleanest for each band
+    cleanest_channel_24GHz = sorted(channel_strength_24GHz.items(), key=lambda x: x[1])[
+        0
+    ][0]
+    cleanest_channel_5GHz = sorted(channel_strength_5GHz.items(), key=lambda x: x[1])[
+        0
+    ][0]
+    # Sort and pick the top 3 cleanest channels for 5GHz
+    top_3_channels_5GHz = sorted(channel_strength_5GHz.items(), key=lambda x: x[1])[:3]
+    top_3_channels_5GHz = [channel for channel, _ in top_3_channels_5GHz]
+
+    print(f"The cleanest 2.4GHz channel is: {cleanest_channel_24GHz}")
+    print(f"The cleanest 5GHz channel is: {cleanest_channel_5GHz}")
+    print(f"The top 3 cleanest 5GHz channels are: {top_3_channels_5GHz}")
 
 
 if __name__ == "__main__":
