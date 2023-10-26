@@ -142,8 +142,9 @@ class Network_tools:
                 banners[port] = None
 
         if verbose:
-            print("Banners:\n")
-            pprint(banners)
+            print("Banners:")
+            for port, banner in banners.items():
+                print(f"Port: {port}\n  Banner: {banner}")
             print("\n\n")
 
         return banners
@@ -212,60 +213,64 @@ class Network_tools:
         verbose: default=False
             if verbose=True will print results
         """
-        if verbose is None:
-            verbose = self.verbose
+        try:
+            if verbose is None:
+                verbose = self.verbose
 
-        s = speedtest.Speedtest()
-        s.get_best_server()
+            s = speedtest.Speedtest()
+            s.get_best_server()
 
-        if verbose:
-            print("Testing download speed...")
-        download_speed = s.download() / 1_000_000
+            if verbose:
+                print("Testing download speed...")
+            download_speed = s.download() / 1_000_000
 
-        if verbose:
-            print("Testing upload speed...")
-        upload_speed = s.upload() / 1_000_000
+            if verbose:
+                print("Testing upload speed...")
+            upload_speed = s.upload() / 1_000_000
 
-        ping_time = s.results.ping
+            ping_time = s.results.ping
 
-        # Get the server information
-        server_name = s.results.server.get("name", "Unknown")
-        server_host = s.results.server.get("host", "Unknown")
-        server_country = s.results.server.get("country", "Unknown")
+            # Get the server information
+            server_name = s.results.server.get("name", "Unknown")
+            server_host = s.results.server.get("host", "Unknown")
+            server_country = s.results.server.get("country", "Unknown")
 
-        # Get the client information
-        client_ip = s.results.client.get("ip", "Unknown")
-        client_isp = s.results.client.get("isp", "Unknown")
-        client_country = s.results.client.get("country", "Unknown")
+            # Get the client information
+            client_ip = s.results.client.get("ip", "Unknown")
+            client_isp = s.results.client.get("isp", "Unknown")
+            client_country = s.results.client.get("country", "Unknown")
 
-        results = {
-            "download_speed": f"{download_speed:.2f} Mbps",
-            "upload_speed": f"{upload_speed:.2f} Mbps",
-            "ping": f"{ping_time:.2f}ms ",
-            "server_name": server_name,
-            "server_host": server_host,
-            "server_country": server_country,
-            "client_ip": client_ip,
-            "client_isp": client_isp,
-            "client_country": client_country,
-        }
+            results = {
+                "download_speed": f"{download_speed:.2f} Mbps",
+                "upload_speed": f"{upload_speed:.2f} Mbps",
+                "ping": f"{ping_time:.2f}ms ",
+                "server_name": server_name,
+                "server_host": server_host,
+                "server_country": server_country,
+                "client_ip": client_ip,
+                "client_isp": client_isp,
+                "client_country": client_country,
+            }
 
-        if verbose:
-            print(
-                f"""
-        Download Speed: {download_speed:.2f} Mbps
-        Upload Speed  : {upload_speed:.2f} Mbps
-        Ping          : {ping_time:.2f} ms
-        Server Name   : {server_name}
-        Server Host   : {server_host}
-        Server Country: {server_country}
-        Client IP     : {client_ip}
-        Client ISP    : {client_isp}
-        Client Country: {client_country}
-        
-        """
-            )
-        return results
+            if verbose:
+                print(
+                    f"""
+            Download Speed: {download_speed:.2f} Mbps
+            Upload Speed  : {upload_speed:.2f} Mbps
+            Ping          : {ping_time:.2f} ms
+            Server Name   : {server_name}
+            Server Host   : {server_host}
+            Server Country: {server_country}
+            Client IP     : {client_ip}
+            Client ISP    : {client_isp}
+            Client Country: {client_country}
+            
+            """
+                )
+            return results
+        except:
+            "Servers are busy try again later"
+            print(s.best)
 
     def get_default_gateway(self):
         try:
@@ -370,7 +375,7 @@ class Network_tools:
             print(f"Grabbing banners for {ip} on {ports}")
             net.grab_banner()
         except:
-            print("Invalid IP to scan")
+            print(f"{ip} has no Open Ports")
 
         print("Run a traceroute: trace_route 8.8.8.8")
         net.trace_route("8.8.8.8")
@@ -385,26 +390,29 @@ class PortScanner:
     def __init__(self):
         self.verbose = True
         self.lock = threading.Lock()
+        self.semaphore = threading.Semaphore(100)  # Limit to 100 threads at a time
 
     def scan_port(self, target_ip, port, open_ports):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
-        result = sock.connect_ex((target_ip, port))
-        if result == 0:
-            self.lock.acquire()
-            open_ports.append(port)
-            self.lock.release()
-        sock.close()
-
-    def syn_scan_port(self, target_ip, port, open_ports):
-        ip_packet = IP(dst=target_ip)
-        tcp_packet = TCP(dport=port, flags="S")
-        reply = sr1(ip_packet / tcp_packet, timeout=1, verbose=False)
-        if reply is not None and reply.haslayer(TCP):
-            if reply[TCP].flags == "SA":
+        with self.semaphore:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.5)
+            result = sock.connect_ex((target_ip, port))
+            if result == 0:
                 self.lock.acquire()
                 open_ports.append(port)
                 self.lock.release()
+            sock.close()
+
+    def syn_scan_port(self, target_ip, port, open_ports):
+        with self.semaphore:
+            ip_packet = IP(dst=target_ip)
+            tcp_packet = TCP(dport=port, flags="S")
+            reply = sr1(ip_packet / tcp_packet, timeout=1, verbose=False)
+            if reply is not None and reply.haslayer(TCP):
+                if reply[TCP].flags == "SA":
+                    self.lock.acquire()
+                    open_ports.append(port)
+                    self.lock.release()
 
     def tcp_port_scan(self, target_ip, start=1, end=500, verbose=None):
         print(f"Checking {target_ip} for open ports between {start}-{end}...\n")
@@ -463,6 +471,6 @@ if __name__ == "__main__":
     net = Network_tools(verbose=True)
     scanner = PortScanner()
     # net.speed_test()
-    # net.demo()
+    net.demo()
     # net.get_network_info()
     # scanner.syn_port_scan("192.168.4.37", start=1, end=500)

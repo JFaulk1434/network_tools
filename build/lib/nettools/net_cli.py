@@ -6,6 +6,25 @@ net = Network_tools(verbose=True)
 scanner = PortScanner()
 
 
+def print_header(text, total_length=60, symbol="-"):
+    remaining_space = total_length - len(text)
+    num_symbols = remaining_space // 2
+
+    # Create the box borders
+    border = symbol * total_length
+
+    # Create the header with the text
+    header = f"{symbol * num_symbols}{text}{symbol * num_symbols}"
+
+    # Add an extra symbol if the total_length is odd
+    if remaining_space % 2 == 1:
+        header += symbol
+
+    print(border)
+    print(header)
+    print(border)
+
+
 @click.group()
 def cli():
     """Version:1.1
@@ -49,10 +68,8 @@ def trace_route(ip, hops=15, timeout=2):
 @cli.command()
 def speed_test():
     """Runs an Internet speedtest"""
-    try:
-        net.speed_test()
-    except:
-        print("Servers are busy try again in a few mins...")
+
+    net.speed_test()
 
 
 @cli.command()
@@ -64,7 +81,29 @@ def network_info():
 @cli.command()
 def demo():
     """Runs a demo of all the network tools"""
-    net.demo()
+    print_header("net-scan")
+    devices = net.net_scan()
+
+    print_header("network-info")
+    net.get_network_info()
+
+    print_header("port-scan")
+    try:
+        ip = devices[1].get("ip")
+        ports = scanner.tcp_port_scan(ip, 1, 500)
+    except:
+        print(f"{ip} has no open ports")
+
+    print_header("speed-test")
+    net.speed_test()
+
+    print_header("synport-scan")
+    scanner.syn_port_scan(ip, 1, 500)
+
+    print_header("trace-route")
+    net.trace_route("8.8.8.8")
+
+    print_header("Demo Complete")
 
 
 @cli.command()
