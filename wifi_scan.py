@@ -13,7 +13,7 @@ def scan_wifi_channels():
 
         channel_info = {}
 
-        pattern = re.compile(r"([^\s]+)\s+(-\d+)\s+(\d+)(?:,\+1)?\s+")
+        pattern = re.compile(r"([\w\s-]+)\s+(-\d+)\s+(\d+)(?:,\+1)?\s+")
 
         for line in output[1:]:
             match = pattern.search(line)

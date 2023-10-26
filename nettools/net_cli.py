@@ -38,7 +38,8 @@ def net_scan(ip, subnet, verbose):
 )
 def port_scan(ip, start, end, verbose=True):
     """Scans TCP ports on target ip using standard TCP Discovery"""
-    net.tcp_port_scan(ip, start, end, verbose)
+    ports = net.tcp_port_scan(ip, start, end, verbose)
+    net.grab_banner(ip, ports, verbose)
 
 
 @cli.command()
@@ -66,7 +67,7 @@ def trace_route(ip, hops=15, timeout=2, verbose=True):
     help="Verbose Mode, True will print out more information",
 )
 def speed_test(verbose=True):
-    """Runs an Internet speedtest and returns a dictionary of the results
+    """Runs an Internet speedtest
 
     Args:
     verbose: default=False
@@ -94,6 +95,17 @@ def network_info(verbose=True):
 def demo():
     """Runs a demo of all the network tools"""
     net.demo()
+
+
+@cli.command()
+@click.argument("ip")
+@click.option("--start", "-s", default=1, help="Starting port")
+@click.option("--end", "-e", default=100, help="Ending port to scan")
+@click.option("--verbose", "-v", default=True, help="Shows more information")
+def synport_scan(ip, start, end, verbose=True):
+    """Half-Open Scan SYN is less detectable but slower"""
+    ports = net.syn_port_scan(ip, start, end, verbose)
+    net.grab_banner(ip, ports, verbose)
 
 
 if __name__ == "__main__":
