@@ -7,7 +7,7 @@ NetTools is a command-line interface that provides a collection of network utili
 If you have received a wheel file for this package, you can install it using pip:
 
 ```bash
-pip install /path/to/nettools-0.3-py3-none-any.whl
+pip install /path/to/nettools-1.1-py3-none-any.whl
 ```
 
 ## Commands

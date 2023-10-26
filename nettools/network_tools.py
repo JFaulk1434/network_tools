@@ -13,6 +13,7 @@ import speedtest
 import time
 import platform
 import subprocess
+import threading
 
 from rich.pretty import pprint
 
@@ -25,7 +26,7 @@ def to_cidr(subnet_mask):
 
 
 class Network_tools:
-    def __init__(self, verbose=False) -> None:
+    def __init__(self, verbose=True) -> None:
         """Network tool class to help with a handful of useful network tools
 
         Args:
@@ -113,80 +114,6 @@ class Network_tools:
         except:
             print("Unable to get local IP address and subnet mask.")
             return None, None
-
-    def tcp_port_scan(self, target_ip, start=1, end=500, verbose=None) -> list:
-        """Scans TCP ports on target ip using standard TCP Discovery.
-
-
-        Args:
-        ip: IP address you want to scan
-        start: default=1
-            Starting port
-        end: default=2
-            Ending port
-        verbose: default=True
-            if True will print out the results
-        """
-        print(f"Checking {target_ip} for open ports between {start}-{end}...\n")
-        if verbose is None:
-            verbose = self.verbose
-
-        start_time = time.time()
-        port_range = range(start, end)
-        open_ports = []
-        for port in port_range:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(1)
-            result = sock.connect_ex((target_ip, port))
-            if result == 0:
-                open_ports.append(port)
-            sock.close()
-
-        end_time = time.time()
-        if verbose:
-            print(f"Scanning complete. Took {end_time - start_time:.2f} seconds.")
-            print(f"{target_ip} has the following TCP ports open: {open_ports}\n\n")
-
-        return open_ports
-
-    def syn_port_scan(self, target_ip, start, end, verbose=None) -> list:
-        """Use Scapy to do a Half-Open Scan SYN SCAN is less detectable but takes longer.
-        Returns a list of open TCP Ports
-
-        Args:
-        target_ip: Target IP address
-        start: Starting port number
-        end: Ending port number
-        versose: default=True
-            Automatically prints results and returns
-        """
-        print(f"Checking {target_ip} for open ports between {start}-{end}...")
-        if verbose is None:
-            verbose = self.verbose
-
-        start_time = time.time()
-        port_range = range(start, end)
-        open_ports = []
-        for port in port_range:
-            # Craft an IP packet with the target IP address
-            ip_packet = IP(dst=target_ip)
-
-            # Craft a TCP packet with the target port number
-            # Flags 'S' for SYN
-            tcp_packet = TCP(dport=port, flags="S")
-
-            # Send the packet and receive a reply
-            reply = sr1(ip_packet / tcp_packet, timeout=1, verbose=False)
-
-            # Check if the port is open
-            if reply is not None and reply.haslayer(TCP):
-                if reply[TCP].flags == "SA":  # SYN-ACK indicates the port is open
-                    open_ports.append(port)
-        end_time = time.time()
-        if verbose:
-            print(f"Scanning complete. Took {end_time - start_time:.2f} seconds.")
-            print(f"{target_ip} has the following TCP ports open: {open_ports}")
-        return open_ports
 
     def grab_banner(self, target_ip, ports, verbose=None) -> dict:
         """Grab the Banner of a port on an IP address.
@@ -324,7 +251,20 @@ class Network_tools:
         }
 
         if verbose:
-            pprint(results)
+            print(
+                f"""
+        Download Speed: {download_speed:.2f} Mbps
+        Upload Speed  : {upload_speed:.2f} Mbps
+        Ping          : {ping_time:.2f} ms
+        Server Name   : {server_name}
+        Server Host   : {server_host}
+        Server Country: {server_country}
+        Client IP     : {client_ip}
+        Client ISP    : {client_isp}
+        Client Country: {client_country}
+        
+        """
+            )
         return results
 
     def get_default_gateway(self):
@@ -412,6 +352,7 @@ class Network_tools:
     def demo():
         print("This will demo all of the tools")
         net = Network_tools(verbose=True)
+        scanner = PortScanner()
 
         print("Running get_network_info")
         net.get_network_info()
@@ -424,7 +365,10 @@ class Network_tools:
 
         print("Checking 2nd device for open ports: port_scan")
         try:
-            net.tcp_port_scan(online_devices[1]["ip"], 1, 100)
+            ip = online_devices[1]["ip"]
+            ports = scanner.tcp_port_scan(ip, 1, 500)
+            print(f"Grabbing banners for {ip} on {ports}")
+            net.grab_banner()
         except:
             print("Invalid IP to scan")
 
@@ -437,7 +381,88 @@ class Network_tools:
         print("Demo Complete...")
 
 
+class PortScanner:
+    def __init__(self):
+        self.verbose = True
+        self.lock = threading.Lock()
+
+    def scan_port(self, target_ip, port, open_ports):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.5)
+        result = sock.connect_ex((target_ip, port))
+        if result == 0:
+            self.lock.acquire()
+            open_ports.append(port)
+            self.lock.release()
+        sock.close()
+
+    def syn_scan_port(self, target_ip, port, open_ports):
+        ip_packet = IP(dst=target_ip)
+        tcp_packet = TCP(dport=port, flags="S")
+        reply = sr1(ip_packet / tcp_packet, timeout=1, verbose=False)
+        if reply is not None and reply.haslayer(TCP):
+            if reply[TCP].flags == "SA":
+                self.lock.acquire()
+                open_ports.append(port)
+                self.lock.release()
+
+    def tcp_port_scan(self, target_ip, start=1, end=500, verbose=None):
+        print(f"Checking {target_ip} for open ports between {start}-{end}...\n")
+        if verbose is None:
+            verbose = self.verbose
+
+        start_time = time.time()
+        open_ports = []
+        threads = []
+
+        for port in range(start, end):
+            thread = threading.Thread(
+                target=self.scan_port, args=(target_ip, port, open_ports)
+            )
+            threads.append(thread)
+            thread.start()
+
+        for t in threads:
+            t.join()
+
+        end_time = time.time()
+        if verbose:
+            print(f"Scanning complete. Took {end_time - start_time:.2f} seconds.")
+            print(f"{target_ip} has the following TCP ports open: {open_ports}\n\n")
+
+        return open_ports
+
+    def syn_port_scan(self, target_ip, start, end, verbose=None):
+        print(f"Checking {target_ip} for open ports between {start}-{end}...")
+        if verbose is None:
+            verbose = self.verbose
+
+        start_time = time.time()
+        open_ports = []
+        threads = []
+
+        for port in range(start, end):
+            thread = threading.Thread(
+                target=self.syn_scan_port, args=(target_ip, port, open_ports)
+            )
+            threads.append(thread)
+            thread.start()
+
+        for t in threads:
+            t.join()
+
+        end_time = time.time()
+        if verbose:
+            print(f"Scanning complete. Took {end_time - start_time:.2f} seconds.")
+            print(f"{target_ip} has the following TCP ports open: {open_ports}")
+
+        return open_ports
+
+
 if __name__ == "__main__":
     net = Network_tools(verbose=True)
-
-    net.get_network_info()
+    scanner = PortScanner()
+    # net.speed_test()
+    # net.demo()
+    # net.get_network_info()
+    # scanner.syn_port_scan("192.168.4.37", start=1, end=500)
