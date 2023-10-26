@@ -8,7 +8,8 @@ scanner = PortScanner()
 
 @click.group()
 def cli():
-    """This CLI tool is a Swiss Army knife for network tasks. It offers a range of utilities,
+    """Version:1.1
+    This CLI tool is a Swiss Army knife for network tasks. It offers a range of utilities,
     from scanning local networks and checking open ports to running speed tests and
     tracing routes to a specific IP. It's designed to be a one-stop-shop for
     basic network diagnostics and information gathering."""
@@ -68,8 +69,8 @@ def demo():
 
 @cli.command()
 @click.argument("ip")
-@click.option("--start", "-s", default=1, help="Starting port")
-@click.option("--end", "-e", default=500, help="Ending port to scan")
+@click.argument("start", default=1)
+@click.argument("end", default=500)
 def synport_scan(ip, start, end):
     """Half-Open Scan SYN is less detectable but slower"""
     ports = scanner.syn_port_scan(ip, start, end)

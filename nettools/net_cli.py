@@ -69,8 +69,8 @@ def demo():
 
 @cli.command()
 @click.argument("ip")
-@click.option("--start", "-s", default=1, help="Starting port")
-@click.option("--end", "-e", default=500, help="Ending port to scan")
+@click.argument("start", default=1)
+@click.argument("end", default=500)
 def synport_scan(ip, start, end):
     """Half-Open Scan SYN is less detectable but slower"""
     ports = scanner.syn_port_scan(ip, start, end)
