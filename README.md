@@ -20,7 +20,6 @@ A Python-based utility class for various network-related tasks, powered by Scapy
 - socket
 - speedtest
 - time
-- netifaces
 - rich
 
 Install all required packages using pip:
