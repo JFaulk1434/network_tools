@@ -20,12 +20,11 @@ A Python-based utility class for various network-related tasks, powered by Scapy
 - socket
 - speedtest
 - time
-- rich
 
 Install all required packages using pip:
 
 ```bash
-pip install scapy manuf psutil speedtest-cli rich
+pip install scapy manuf psutil speedtest-cli
 ```
 
 Package:

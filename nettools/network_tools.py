@@ -15,9 +15,6 @@ import platform
 import subprocess
 import threading
 
-from rich.pretty import pprint
-
-
 m = manuf.MacParser()
 
 

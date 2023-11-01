@@ -15,6 +15,5 @@ setup(
         "manuf",
         "psutil",
         "speedtest-cli",
-        "rich",
     ],
 )
