@@ -1,6 +1,6 @@
 # Network Tools
 
-A Python-based utility class for various network-related tasks, powered by Scapy, psutil, speedtest, and more. **Not tested with Windows**
+A Python-based utility class for various network-related tasks, powered by Scapy, psutil, speedtest, and more.
 
 ## Features
 
