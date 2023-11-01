@@ -1,2 +1,0 @@
-[console_scripts]
-NT = nettools.net_cli:cli

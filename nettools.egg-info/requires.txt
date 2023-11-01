@@ -1,6 +1,0 @@
-click
-scapy
-manuf
-psutil
-speedtest-cli
-rich
