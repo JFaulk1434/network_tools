@@ -1,4 +1,5 @@
 .vscode/
 __pycache__/
 build/
-nettools.egg-info
+nettools.egg-info/
+nettools/__pycache__/
