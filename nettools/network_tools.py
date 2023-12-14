@@ -49,7 +49,7 @@ class Network_tools:
 
         if ip == None:
             try:
-                print("No IP entered... Attemping Auto...")
+                print("No IP entered... Attempting Auto...")
                 network = self.get_local_ip_and_subnet()
                 print(f"Network detected: {network[0]}/{network[1]}\n")
 
