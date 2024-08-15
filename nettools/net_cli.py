@@ -90,8 +90,8 @@ def demo():
     print_header("port-scan")
     try:
         ip = devices[1].get("ip")
-        ports = scanner.tcp_port_scan(ip, 1, 500)
-    except:
+        scanner.tcp_port_scan(ip, 1, 500)
+    except:  # noqa: E722
         print(f"{ip} has no open ports")
 
     print_header("speed-test")
